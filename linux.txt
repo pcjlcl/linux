@@ -1,0 +1,51 @@
+systemctl start redisd
+ps aux | grep redis
+kill -9 8589
+cp redis.conf /etc/redis/6379.conf
+
+
+================================================================zookeeper====================================================================
+dataDir=/root/zookeeper/zk1/data
+dataLogDir=/root/zookeeper/zk1/dataLog
+# the port at which the clients will connect
+clientPort=2181
+server.1=127.0.0.1:2888:3888
+server.2=127.0.0.1:2889:3889
+server.3=127.0.0.1:2890:3890
+
+
+dataDir=/root/zookeeper/zk2/data
+dataLogDir=/root/zookeeper/zk2/dataLog
+# the port at which the clients will connect
+clientPort=2182
+server.1=127.0.0.1:2888:3888
+server.2=127.0.0.1:2889:3889
+server.3=127.0.0.1:2890:3890
+
+
+dataDir=/root/zookeeper/zk3/data
+dataLogDir=/root/zookeeper/zk3/dataLog
+# the port at which the clients will connect
+clientPort=2183
+server.1=127.0.0.1:2888:3888
+server.2=127.0.0.1:2889:3889
+server.3=127.0.0.1:2890:3890
+
+客户端sh zkCli.sh -server 127.0.0.1:2181
+idea插件：zookeeper
+
+================================================================zookeeper====================================================================
+
+================================================================JDK==========================================================================
+
+wget --no-check-certificate --no-cookies --header "Cookie: oraclelicense=accept-securebackup-cookie" http://download.oracle.com/otn-pub/java/jdk/8u131-b11/d54c1d3a095b4ff2b6607d096fa80163/jdk-8u131-linux-x64.tar.gz
+
+JAVA_HOME=/usr/java/jdk1.8.0_131
+PATH=$JAVA_HOME/bin:$PATH
+CLASSPATH=.:$JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar 
+export JAVA_HOME PATH CLASSPATH 
+
+重新加载配置文件：source /etc/profile
+
+================================================================JDK==========================================================================
+
