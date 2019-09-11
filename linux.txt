@@ -49,3 +49,35 @@ export JAVA_HOME PATH CLASSPATH
 
 ================================================================JDK==========================================================================
 
+
+================================================================Kafka==========================================================================
+1.下载：wget http://mirror.bit.edu.cn/apache/kafka/2.3.0/kafka_2.11-2.3.0.tgz 
+2.解压：tar -zxvf kafka_2.11-2.3.0.tgz
+3.修改zk配置：vim config/server.properties
+4.启动：sh kafka-server-start.sh -daemon ../config/server.properties
+	sh kafka-server-start.sh -daemon ../config/server-1.properties
+	sh kafka-server-start.sh -daemon ../config/server-2.properties
+ daemon代表后台进程
+  停止 sh kafka-server-stop.sh ../config/server.properties
+5.接下来的操作命令可以查看官网：http://kafka.apache.org/documentation/#quickstart
+6.集群：
+	多台机器解压
+	修改配置文件：zk、broker.id
+		      listeners=PLAINTEXT://:9092
+		      advertised.listeners=PLAINTEXT://106.12.129.197:9092
+7.生产环境需要调优的参数：
+    发送端：
+	batch.size(16kb):producer对于同一个分区来说，会按照设置的大小进行统一收集进行批量发送
+	linger.ms(0)：delay之后再批量发送到broker，这2个参数协同工作，只要满足一个就执行(Nagle算法)，但是linger.ms默认为0，则batch.size会不生效
+	max.request.size(1M)
+
+    消费端：
+	GroupID，同一个Group只能消费一次，组内竞争。kafka都会持久化到磁盘上，所有你换一个消费组，则可以再次消费
+	AUTO_OFFSET_RESET_CONFIG：
+		如果设置为earliest：对于新的GroupId来说，对于新的则会从最早的消息开始消费，即重置offset;
+		如果设置为lastest：新的消费者将会从其他消费者最后消费的offset 处开始消费 Topic 下的消息
+		如果设置为none：新的消费者加入以后，由于之前不存在offset，则会直接抛出异常
+	ENABLE_AUTO_COMMIT_CONFIG和AUTO_COMMIT_INTERVAL_MS_CONFIG配合使用
+
+================================================================Kafka==========================================================================
+
