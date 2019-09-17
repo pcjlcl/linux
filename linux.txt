@@ -59,6 +59,8 @@ export JAVA_HOME PATH CLASSPATH
 	sh kafka-server-start.sh -daemon ../config/server-2.properties
  daemon代表后台进程
   停止 sh kafka-server-stop.sh ../config/server.properties
+  发送：sh bin/kafka-console-producer.sh --broker-list 106.12.129.197:9092 --topic my-replicated-topic
+  消费：sh bin/kafka-console-consumer.sh --bootstrap-server 106.12.129.197:9092 --from-beginning --topic my-replicated-topic
 5.接下来的操作命令可以查看官网：http://kafka.apache.org/documentation/#quickstart
 6.集群：
 	多台机器解压
