@@ -1,0 +1,138 @@
+单实例：
+1、下载redis
+下载地址在：redis.io
+比如把Redis安装到/usr/local/soft/
+cd /usr/local/soft/
+wget http://download.redis.io/releases/redis-5.0.5.tar.gz
+
+2、解压压缩包
+tar -zxvf redis-5.0.5.tar.gz
+
+3、安装gcc依赖
+Redis是C语言编写的，编译需要
+yum install gcc
+
+4、编译安装
+cd redis-5.0.5
+make MALLOC=libc
+将/usr/local/soft/redis-5.0.5/src目录下二进制文件安装到/usr/local/bin
+cd src
+make install
+
+5、修改配置文件
+默认的配置文件是/usr/local/soft/redis-5.0.5/redis.conf
+后台启动
+daemonize no
+改成
+daemonize yes
+下面一行必须改成 bind 0.0.0.0 或注释，否则只能在本机访问
+bind 127.0.0.1 
+如果需要密码访问，取消requirepass的注释(主从之前先不设置)
+requirepass yourpassword
+
+6、使用指定配置文件启动Redis（这个命令建议配置alias）
+/usr/local/soft/redis-5.0.5/src/redis-server /usr/local/soft/redis-5.0.5/redis.conf
+
+7、进入客户端（这个命令建议配置alias）
+/usr/local/soft/redis-5.0.5/src/redis-cli
+
+8、停止redis（在客户端中）
+redis> shutdown
+或
+redis-cli -h 106.12.129.197 -p 7291 shutdown
+或
+ps -aux | grep redis
+kill -9 xxxx
+
+=============================================================三主三从cluster================================================================================
+创建：redis-cli --cluster create 106.12.129.197:7291 106.12.129.197:7292 106.12.129.197:7293 106.12.129.197:7294 106.12.129.197:7295 47.111.69.3:6379 --cluster-replicas 1
+查看：redis-cli --cluster info 106.12.129.197:7291
+问题：Either the node already knows other nodes (check with CLUSTER NODES) or cont
+解决：删除已有文件
+        rm -rf 7292/appendonly.aof
+        rm -rf 7292/dump.rdb
+        rm -rf 7292/nodes-7292.conf
+      然后重启服务
+问题：一直waiting
+解决：外网是否可以访问，端口是否开放
+================================================================================================================================================
+
+======================================================redis理解==========================================================================
+不建议用每一个库去区分项目，虽然默认16个库，但其实还是一起的
+数据结构：
+ ziplist：是将表中每一项存放在前后连续的地址空间内，一个ziplist整体占用一大块内存
+ skiplist:每一层链接
+数据类型(注意不是数据结构)：
+hash：
+用ziplist存储配置，任意一个不满足就用hashtable
+ hash-max-ziplist-entries 存储的hash元素数量小于512
+ hash-max-ziplist-value 64 所有的value的长度都是小于64字节
+hashmap:数组加链表，链表是因为hash碰撞产生的，如果链表个数太多，则性能下降
+	dict-can-resize=1
+	dict-force-resize-radio=5,触发扩容
+	应用：购物车
+	  key：用户id
+	  field：商品id
+	  value：商品数量
+list：有序字符串，从左到右
+      数据结构：早期ziplist和linkedlist，3.2之后：quickedlist双向链表，每个节点是quicklistnode结构，quicklistnode指向ziplist，就是说用qulicklistnode双向连接一个ziplist
+      应用：
+	用户时间线
+	队列
+set：无序集合（不允许重复），2的32次方-1
+     数据结构：intset(全部是整型)和hashtable(value是空值)
+     操作：sadd添加、srem删除、scard统计、sdiff差集、sinter交集、sunion并集
+     应用：
+       微博点赞的用户：微博id+点赞用户id集合，点赞sadd、取消点赞srem、点赞数scard
+       商品评价标签：“性能一般(927)、空间充足(675)”
+       购买商品多选条件：品牌(iphone、huawei、mi)
+       相互关注？我关注的人也关注了他?可能认识的人
+zset：有序集合（不允许重复），每个人有个分数，按分数排序
+      操作：zadd、zrange、zrevrange、zrem、zcard、zcount范围个数、zincrby、zrank、zscore
+      数据结构：ziplist(个数小于128、所有的value都是小于64字节)、skiplist+dict
+      应用：排行榜
+geospatial:地理位置
+
+存储结构是dicEntry，list等再次进行层层封装
+单机-读写分离，ssd，活动历史，分区分库分表，集群分布式微服务
+为什么要用缓存：
+	提升查询性能，减轻数据库压力，降低存储成本(缓存访问速度快，减少机器成本)。因为内存的访问性能是最好的，但是所有数据都放内存是不现实的，内存资源昂贵且有限，根据28理论，20%的时间都在访问80的热点数据，
+  所有我们可以引入缓存组件去把热点数据放到缓存里面，可以提升整个系统的一个承载能力，这时我们就可以在应用和数据库中间加一个缓存层，比如redis。
+缓存组件：不是单一组件，会用到多级缓存，比如内存缓存组件和分布式缓存组件结合
+写入缓存方式：
+	写入数据库后，插入缓存
+	查询数据库，写入缓存
+	定时刷新
+缓存分类：
+	应用类缓存，例如HashMap等
+	组件缓存，例如redis，mamabcache
+redis存储结构：redis实例--db(默认16个db空间)--key--value，redis比mamabcache提供更丰富的结构，string、list、hash、set、sorted-set
+redis默认支持哪几种结构：字符串、整数、浮点，对整数类型可以调用INCT实现原子递增，比较多为计数器
+redis内部基于的数据结构：sds、int
+过期时间：expire
+	消极(passive way)
+	     在访问时发现如果已经失效，就删除它
+	积极:周期的从设置了过期时间的key中选择一部分删除，redi每秒会进行10次操作，流程如下：
+	     随机测试20个带有timeout的key
+	     如果超过25%的key被删除，则重复执行整个流程
+持久化：
+	RDB：fork一个子进程，将数据写入临时文件，等到持久化结束，用次临时文件替换上次的持久化文件，整个过程主进程没有IO操作，性能极高，但是最后一次的持久化文件可能会丢失。
+	     dump.rdb文件
+	     save：阻塞
+	     bgsave：后台异步快照，不影响客户端请求
+	AOF：Appeng Only File，除了内存，会追加写入磁盘，会稍微降低性能
+内存回收：redis提供了多种内存回收的策略，当内存不足时，为了保证程序的运行，这时不得不淘汰内存中的一些对象，那么淘汰哪些对象呢？
+	LRU：最近最少使用
+	maxmemory-policy:
+	noeviction,默认，当内存使用达到阈值的时候，所有引起申请内存的命令会报错
+	allkeys-lru:从数据集(server.db[i].dict)中挑选最近最少使用的数据淘汰,适合场景：如果我们的应用对缓存的访问都是相对热点数据，那么可以选择这个策略
+	allkeys-random 随机移除某个key,适合场景：如果我们的应用对于缓存key的访问概率相等，则可以使用这个策略
+	volatile-random：从已设置过期时间的数据集(server.db[i].expires)中任意选择数据淘汰
+	volatile-lru：从已设置过期时间的数据集(server.db[i].expires)中挑选最近最少使用的数据淘汰
+	volatile-ttl：从已设置过期时间的数据集(server.db[i].expires)中挑选将要过期的数据淘汰,适合场景：这种策略使得我们可以向redis提示哪些key更适合被淘汰，我们可以自己控制
+单线程为什么性能很高：
+	redis的瓶颈不在于cpu，而在于内存和网络
+	完全基于内存
+	单线程不用cpu上下文切换，不用考虑锁的问题
+	I/O多路复用(也叫异步阻塞I/O)，虽然是单线程，但是不会阻塞用户请求，不会等上一个请求完毕才会响应
+================================================================redis===============================================================
