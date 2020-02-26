@@ -31,6 +31,10 @@ server.1=127.0.0.1:2888:3888
 server.2=127.0.0.1:2889:3889
 server.3=127.0.0.1:2890:3890
 
+服务端：
+./zk1/bin/zkServer.sh start
+./zk2/bin/zkServer.sh start
+./zk3/bin/zkServer.sh start
 客户端sh zkCli.sh -server 127.0.0.1:2181
 idea插件：zookeeper
 
