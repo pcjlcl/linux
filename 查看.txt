@@ -1,0 +1,19 @@
+rvtO#u%t*7s5
+
+∞Ÿ∂»‘∆£∫106.12.129.197 Pcjhcl861107@123
+mysql:root Pcjhcl861107@123
+git pcjhcl861107
+∞¢¿Ô‘∆£∫47.111.69.3  root Pcjhcl861107@123
+
+
+CzME9Q
+
+1 338 444 718
+
+
+dsc.setDriverName("com.mysql.jdbc.Driver");
+dsc.setUrl("jdbc:mysql://106.12.129.197:3306/Test?useSSL=false");
+dsc.setUsername("root");
+dsc.setPassword("Pcjhcl861107@123");
+
+
