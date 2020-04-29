@@ -1,0 +1,130 @@
+# MySQL执行流程 
+
+## 目标
+
+1. 了解MySql语句的执行流程
+2. 了解MySql的架构与内部模块
+3. 掌握InnoDB存储引擎的字盘与内存结构
+
+## 通信类型
+
+- 同步/异步，同步
+
+## 连接方式
+
+- 长连接：线程池一般是长连接，但是会有时间限制，可配置，wait_timeout=28800秒=8小时
+- 短连接
+- 连接命令：show global status like '%Thread%';连接就是服务端线程
+- show processlist;查看连接列表
+- show variables like '%max_connections%';
+- show session variables like '%max_connections%';
+- show global variables like '%max_connections%';默认session
+- set命令是动态修改，重启后恢复；如果需要永久修改，需修改配置文件
+
+## 通信协议
+
+- Unix Socket
+- TCP/IP(代码就是这种方式)
+- Named Pipes
+- Share Memory
+
+## 通信方式
+
+- 单工：类似遥控器，仅单向
+- 半双工：可以双向，但同时仅能单向，类似对讲机，你讲完我讲
+- 全双工：可以同时传输，类似打电话
+- MySql使用的半双工
+- show variables like '%max_allow_packet%';最大4M
+
+## 流程
+
+App--缓存(自身已干掉，可以借用Mybatis的)--解析--预处理--优化器-- 执行计划--查询存储引擎--存储引擎--App
+
+## 语法解析
+
+- 词法解析：将语句打成一个个单词
+- 语法解析：得到一个解析树，是个数据结构
+
+## 预处理器
+
+比如表名是否存在，语句是对的但是表不存在，就在此处处理，不是在执行的时候检查的
+
+## 优化器
+
+- 一条SQL语句会有多个执行计划，然后选择一个开销最小的
+- show status like '%Last_query_cost%';
+- 优化器追踪：optimizer_trace
+
+## 执行计划
+
+- Explain SQL语句
+
+## 问题
+
+- 数据放在哪？用的什么数据结构：存储引擎
+
+- 执行计划在哪执行？谁执行：查询执行引擎
+
+## 存储引擎
+
+MySQl没创建一张表都可以制定存储引擎，而不是数据库。存储引擎以表为单位，而且创建表后还可以修改存储引擎。
+
+- 默认任何一个存储引擎都有一个frm文件，这是表结构，剩下的数据文件：innoDB1个，MyISAM2个
+- 所有的存储引擎实现的API都是一样的
+- show table status from '库名'
+- InnoDB：共2个文件
+  - 支持事务；支持外键
+  - 行级锁和Oracle风格一致的非锁读，提高并发性能；
+  - 表级锁
+  - 支持读写并发，写不阻塞读(MVCC)
+  - 特殊的索引存放方式，减少IO，提高查询效率
+- MyISAM：共3个文件
+
+## 更新流程
+
+- 存储引擎：
+  - 从内存或磁盘读取数据
+  - 执行器：内存修改
+  - 写undo和redo，状态为prepare
+  - 把Buffer Pool写入字盘
+
+- Service层
+  - Binlog
+
+- 只有Binlog写入之后才会把RegoLog的状态改为Conmmit
+
+## Buffer Pool
+
+- 包括：DataBuffer、change buffer、log buffer、hash index
+
+- redo log：所有事务，先写log buffer，再写redo log，再写缓存，最后再刷盘，保证数据的一致性。redo log主要用于恢复，刷盘还是用数据buffer。默认是事务提交就直接写入log文件，可以配置修改写log方式
+- redo log：不是记录的page页的内容，而是记录的修改了什么。redo log大小固定，如果满了就刷盘然后覆盖。
+
+## 磁盘结构
+
+- 系统表空间：ibdata1
+  - InnoDB数据字典：元数据
+  - 双写Buffer
+  - Change Buffer
+  - Undo logs
+- 独占表空间
+  - innodb_file_per_table默认打开
+  - 每个表都一个表空间：t1.ibd、t2.ibd
+
+- 通用表空间
+  - 创建表的时候，可以指定自己创建的表空间
+
+- 临时表空间
+- Undo Log
+  - 回滚日志，记录事务发生前的状态
+  - 默认在系统表空间内，也可以单独
+  - 逻辑日志
+- Redo Log
+  - 物理日志
+
+## Binlog
+
+- 记录DDL、DML
+- 逻辑日志
+- 可以用来做主从(slave重新执行一边binlog的语句)
+- 可以用来恢复
